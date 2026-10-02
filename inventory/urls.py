@@ -5,8 +5,21 @@ from . import views
 app_name = 'inventory'
 
 urlpatterns = [
+    # Productos
     path('', views.ProductListView.as_view(), name='product_list'),
     path('productos/nuevo/', views.ProductCreateView.as_view(), name='product_create'),
     path('productos/<int:pk>/', views.ProductDetailView.as_view(), name='product_detail'),
     path('productos/<int:pk>/editar/', views.ProductUpdateView.as_view(), name='product_update'),
+
+    # Categorías
+    path('categorias/', views.CategoryListView.as_view(), name='category_list'),
+    path('categorias/nueva/', views.CategoryCreateView.as_view(), name='category_create'),
+    path('categorias/<int:pk>/editar/', views.CategoryUpdateView.as_view(), name='category_update'),
+    path('categorias/<int:pk>/eliminar/', views.CategoryDeleteView.as_view(), name='category_delete'),
+
+    # Proveedores
+    path('proveedores/', views.SupplierListView.as_view(), name='supplier_list'),
+    path('proveedores/nuevo/', views.SupplierCreateView.as_view(), name='supplier_create'),
+    path('proveedores/<int:pk>/editar/', views.SupplierUpdateView.as_view(), name='supplier_update'),
+    path('proveedores/<int:pk>/eliminar/', views.SupplierDeleteView.as_view(), name='supplier_delete'),
 ]

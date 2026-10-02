@@ -14,10 +14,12 @@
             {% if user.is_authenticated %}
             <div class="d-flex align-items-center gap-3">
                 <a class="nav-link text-light" href="{% url 'inventory:product_list' %}">Productos</a>
-                <span class="text-secondary small">{{ user.username }}</span>
-                <form method="post" action="{% url 'logout' %}" class="m-0">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+                <a class="nav-link text-light" href="{% url 'inventory:category_list' %}">Categorías</a>
+                <a class="nav-link text-light" href="{% url 'inventory:supplier_list' %}">Proveedores</a>
+                   <span class="text-secondary small">{{ user.username }}</span>
+                   <form method="post" action="{% url 'logout' %}" class="m-0">
+                       {% csrf_token %}
+                   <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
                 </form>
             </div>
             {% endif %}
