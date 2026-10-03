@@ -1,16 +1,35 @@
 import csv
+from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, F, ProtectedError, Q
-from django.shortcuts import redirect
-from django.urls import reverse, reverse_lazy
-from django.contrib.auth.decorators import login_required
+from django.db.models import Count, DecimalField, F, ProtectedError, Q, Sum
+from django.db.models.functions import TruncDate
 from django.http import HttpResponse
-from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
+from django.shortcuts import redirect
+from django.template.defaultfilters import pluralize
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
-from .forms import CategoryForm, CSVImportForm, ProductFilterForm, ProductForm, StockMovementForm, SupplierForm
+from .forms import (
+    CategoryForm,
+    CSVImportForm,
+    ProductFilterForm,
+    ProductForm,
+    StockMovementForm,
+    SupplierForm,
+)
 from .models import Category, Product, StockMovement, Supplier
 from .services import CSVImportError, import_products_from_csv
 
@@ -252,7 +271,7 @@ class LowStockListView(LoginRequiredMixin, ListView):
         )
 
 
-# ---------- Importación CSV ----------
+
 
 class ProductImportView(LoginRequiredMixin, FormView):
     form_class = CSVImportForm
@@ -271,10 +290,14 @@ class ProductImportView(LoginRequiredMixin, FormView):
                 form.add_error(None, f'... y {hidden} errores más.')
             return self.form_invalid(form)
 
-        messages.success(
-            self.request,
-            f'Importación completada: {summary["created"]} productos creados, '
-            f'{summary["updated"]} actualizados y {summary["movements"]} entradas de stock registradas.',
+            created = summary['created']
+            updated = summary['updated']
+            movements = summary['movements']
+            messages.success(
+        self.request,
+            f'Importación completada: {created} producto{pluralize(created)} creado{pluralize(created)}, '
+            f'{updated} actualizado{pluralize(updated)} y '
+            f'{movements} entrada{pluralize(movements)} de stock registrada{pluralize(movements)}.',
         )
         return super().form_valid(form)
 
@@ -288,3 +311,57 @@ def download_csv_template(request):
     writer.writerow(['nombre', 'sku', 'categoria', 'proveedor', 'precio', 'stock_minimo', 'entrada'])
     writer.writerow(['Bolígrafo azul', 'BOL-001', 'Papeleria', 'Bryan', '1.50', '10', '50'])
     return response
+
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventory/dashboard.html'
+    days = 30
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['totals'] = Product.objects.aggregate(
+            total_products=Count('id'),
+            total_units=Sum('stock'),
+            inventory_value=Sum(
+                F('stock') * F('price'),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            ),
+        )
+
+        today = timezone.localdate()
+        start = today - timedelta(days=self.days - 1)
+        recent = StockMovement.objects.filter(created_at__date__gte=start)
+
+        daily_rows = (
+            recent.annotate(day=TruncDate('created_at'))
+            .values('day', 'movement_type')
+            .annotate(total=Sum('quantity'))
+            .order_by()
+        )
+        all_days = [start + timedelta(days=offset) for offset in range(self.days)]
+        entries = dict.fromkeys(all_days, 0)
+        exits = dict.fromkeys(all_days, 0)
+        for row in daily_rows:
+            if row['movement_type'] == StockMovement.MovementType.IN:
+                entries[row['day']] = row['total']
+            else:
+                exits[row['day']] = row['total']
+
+        top_exits = (
+            recent.filter(movement_type=StockMovement.MovementType.OUT)
+            .values('product__name')
+            .annotate(total=Sum('quantity'))
+            .order_by('-total')[:5]
+        )
+
+        context['days'] = self.days
+        context['chart_data'] = {
+            'labels': [day.strftime('%d/%m') for day in all_days],
+            'entries': [entries[day] for day in all_days],
+            'exits': [exits[day] for day in all_days],
+            'top_labels': [row['product__name'] for row in top_exits],
+            'top_values': [row['total'] for row in top_exits],
+        }
+        return context

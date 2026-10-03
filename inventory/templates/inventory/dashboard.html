@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Panel de inventario</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Productos</div>
+                <div class="fs-2 fw-semibold">{{ totals.total_products }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Unidades en stock</div>
+                <div class="fs-2 fw-semibold">{{ totals.total_units|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Valor del inventario</div>
+                <div class="fs-2 fw-semibold text-nowrap">{{ totals.inventory_value|default:0|floatformat:"2g" }} €</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'inventory:low_stock' %}" class="text-decoration-none">
+            <div class="card shadow-sm h-100 {% if low_stock_count %}border-danger{% endif %}">
+                <div class="card-body">
+                    <div class="text-muted small">Alertas de stock</div>
+                    <div class="fs-2 fw-semibold {% if low_stock_count %}text-danger{% else %}text-success{% endif %}">{{ low_stock_count }}</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Entradas y salidas (últimos {{ days }} días)</h2>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="movementsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Productos con más salidas</h2>
+                {% if chart_data.top_labels %}
+                <div style="position: relative; height: 300px;">
+                    <canvas id="topExitsChart"></canvas>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-5 mb-0">No hay salidas en los últimos {{ days }} días.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+
+    new Chart(document.getElementById('movementsChart'), {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                { label: 'Entradas', data: chartData.entries, backgroundColor: '#198754' },
+                { label: 'Salidas', data: chartData.exits, backgroundColor: '#dc3545' },
+            ],
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        },
+    });
+
+    const topCanvas = document.getElementById('topExitsChart');
+    if (topCanvas) {
+        new Chart(topCanvas, {
+            type: 'bar',
+            data: {
+                labels: chartData.top_labels,
+                datasets: [{ label: 'Unidades', data: chartData.top_values, backgroundColor: '#dc3545' }],
+            },
+            options: {
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+            },
+        });
+    }
+</script>
+{% endblock %}

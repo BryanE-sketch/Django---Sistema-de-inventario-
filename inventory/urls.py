@@ -32,4 +32,8 @@ urlpatterns = [
     
     # Alertas
     path('alertas/', views.LowStockListView.as_view(), name='low_stock'),
+    
+    
+    # Panel
+    path('panel/', views.DashboardView.as_view(), name='dashboard'),
 ]
