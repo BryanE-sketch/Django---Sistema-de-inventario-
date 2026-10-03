@@ -8,7 +8,9 @@ class BootstrapFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
-            if isinstance(field.widget, forms.Select):
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = 'form-check-input'
+            elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = 'form-select'
             else:
                 field.widget.attrs['class'] = 'form-control'
@@ -49,3 +51,23 @@ class StockMovementForm(BootstrapFormMixin, forms.ModelForm):
         widgets = {
             'quantity': forms.NumberInput(attrs={'min': 1}),
         }
+
+class ProductFilterForm(BootstrapFormMixin, forms.Form):
+    q = forms.CharField(
+        label='Buscar',
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Nombre o SKU'}),
+    )
+    category = forms.ModelChoiceField(
+        label='Categoría',
+        queryset=Category.objects.all(),
+        required=False,
+        empty_label='Todas',
+    )
+    supplier = forms.ModelChoiceField(
+        label='Proveedor',
+        queryset=Supplier.objects.all(),
+        required=False,
+        empty_label='Todos',
+    )
+    low_stock = forms.BooleanField(label='Solo stock bajo', required=False)

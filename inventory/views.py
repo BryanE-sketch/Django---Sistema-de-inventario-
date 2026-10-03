@@ -1,12 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, F, ProtectedError
+from django.db.models import Count, F, ProtectedError, Q
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from .forms import CategoryForm, ProductForm, StockMovementForm, SupplierForm
+from .forms import CategoryForm, ProductFilterForm, ProductForm, StockMovementForm, SupplierForm
 from .models import Category, Product, StockMovement, Supplier
 
 class ProtectedDeleteMixin:
@@ -32,7 +32,31 @@ class ProductListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return Product.objects.select_related('category', 'supplier')
+        queryset = Product.objects.select_related('category', 'supplier')
+        self.filter_form = ProductFilterForm(self.request.GET or None)
+
+        if self.filter_form.is_valid():
+            data = self.filter_form.cleaned_data
+            if data['q']:
+                queryset = queryset.filter(
+                    Q(name__icontains=data['q']) | Q(sku__icontains=data['q'])
+                )
+            if data['category']:
+                queryset = queryset.filter(category=data['category'])
+            if data['supplier']:
+                queryset = queryset.filter(supplier=data['supplier'])
+            if data['low_stock']:
+                queryset = queryset.low_stock()
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_form'] = self.filter_form
+        context['is_filtered'] = any(
+            value for key, value in self.request.GET.items() if key != 'page'
+        )
+        return context
 
 
 class ProductDetailView(LoginRequiredMixin, DetailView):

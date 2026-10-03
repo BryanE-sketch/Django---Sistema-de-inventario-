@@ -28,7 +28,9 @@
                     <td>{{ supplier.contact_name|default:"—" }}</td>
                     <td>{{ supplier.email|default:"—" }}</td>
                     <td>{{ supplier.phone|default:"—" }}</td>
-                    <td class="text-end">{{ supplier.num_products }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'inventory:product_list' %}?supplier={{ supplier.pk }}">{{ supplier.num_products }}</a>
+                    </td>
                     <td class="text-end text-nowrap">
                         <a href="{% url 'inventory:supplier_update' supplier.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
                         <a href="{% url 'inventory:supplier_delete' supplier.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
