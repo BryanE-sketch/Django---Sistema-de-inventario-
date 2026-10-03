@@ -71,3 +71,21 @@ class ProductFilterForm(BootstrapFormMixin, forms.Form):
         empty_label='Todos',
     )
     low_stock = forms.BooleanField(label='Solo stock bajo', required=False)
+    
+    
+class CSVImportForm(BootstrapFormMixin, forms.Form):
+    MAX_SIZE_MB = 2
+
+    file = forms.FileField(
+        label='Archivo CSV',
+        help_text=f'Máximo {MAX_SIZE_MB} MB, codificación UTF-8.',
+        widget=forms.ClearableFileInput(attrs={'accept': '.csv'}),
+    )
+
+    def clean_file(self):
+        file = self.cleaned_data['file']
+        if not file.name.lower().endswith('.csv'):
+            raise forms.ValidationError('El archivo debe tener extensión .csv.')
+        if file.size > self.MAX_SIZE_MB * 1024 * 1024:
+            raise forms.ValidationError(f'El archivo no puede superar los {self.MAX_SIZE_MB} MB.')
+        return file

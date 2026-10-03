@@ -8,6 +8,8 @@ urlpatterns = [
     # Productos
     path('', views.ProductListView.as_view(), name='product_list'),
     path('productos/nuevo/', views.ProductCreateView.as_view(), name='product_create'),
+    path('productos/importar/', views.ProductImportView.as_view(), name='product_import'),
+    path('productos/plantilla-csv/', views.download_csv_template, name='product_csv_template'),
     path('productos/<int:pk>/', views.ProductDetailView.as_view(), name='product_detail'),
     path('productos/<int:pk>/editar/', views.ProductUpdateView.as_view(), name='product_update'),
 

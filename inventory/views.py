@@ -1,13 +1,18 @@
+import csv
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, F, ProtectedError, Q
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 
-from .forms import CategoryForm, ProductFilterForm, ProductForm, StockMovementForm, SupplierForm
+from .forms import CategoryForm, CSVImportForm, ProductFilterForm, ProductForm, StockMovementForm, SupplierForm
 from .models import Category, Product, StockMovement, Supplier
+from .services import CSVImportError, import_products_from_csv
 
 class ProtectedDeleteMixin:
     protected_message = 'No se puede eliminar porque tiene productos asociados.'
@@ -245,3 +250,41 @@ class LowStockListView(LoginRequiredMixin, ListView):
             .annotate(shortage=F('min_stock') - F('stock'))
             .order_by('-shortage', 'name')
         )
+
+
+# ---------- Importación CSV ----------
+
+class ProductImportView(LoginRequiredMixin, FormView):
+    form_class = CSVImportForm
+    template_name = 'inventory/product_import.html'
+    success_url = reverse_lazy('inventory:product_list')
+    max_errors_shown = 20
+
+    def form_valid(self, form):
+        try:
+            summary = import_products_from_csv(form.cleaned_data['file'], self.request.user)
+        except CSVImportError as error:
+            for message in error.errors[:self.max_errors_shown]:
+                form.add_error(None, message)
+            hidden = len(error.errors) - self.max_errors_shown
+            if hidden > 0:
+                form.add_error(None, f'... y {hidden} errores más.')
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            f'Importación completada: {summary["created"]} productos creados, '
+            f'{summary["updated"]} actualizados y {summary["movements"]} entradas de stock registradas.',
+        )
+        return super().form_valid(form)
+
+
+@login_required
+def download_csv_template(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_productos.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['nombre', 'sku', 'categoria', 'proveedor', 'precio', 'stock_minimo', 'entrada'])
+    writer.writerow(['Bolígrafo azul', 'BOL-001', 'Papeleria', 'Bryan', '1.50', '10', '50'])
+    return response

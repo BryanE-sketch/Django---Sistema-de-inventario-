@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar productos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-3">Importar productos desde CSV</h1>
+                <p class="text-muted">
+                    Si el SKU ya existe, el producto se actualiza; si no, se crea.
+                    La columna <code>entrada</code> registra un movimiento de entrada con esa cantidad.
+                    Si alguna fila tiene errores, no se importa ninguna.
+                </p>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm small mb-0">
+                        <thead class="table-light">
+                            <tr><th>Columna</th><th>Obligatoria</th><th>Ejemplo</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>nombre</code></td><td>Sí</td><td>Bolígrafo azul</td></tr>
+                            <tr><td><code>sku</code></td><td>Sí</td><td>BOL-001</td></tr>
+                            <tr><td><code>categoria</code></td><td>Sí</td><td>Papeleria</td></tr>
+                            <tr><td><code>proveedor</code></td><td>Sí</td><td>Bryan</td></tr>
+                            <tr><td><code>precio</code></td><td>Sí</td><td>1.50 o 1,50</td></tr>
+                            <tr><td><code>stock_minimo</code></td><td>No (por defecto 5)</td><td>10</td></tr>
+                            <tr><td><code>entrada</code></td><td>No (por defecto 0)</td><td>50</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <a href="{% url 'inventory:product_csv_template' %}" class="btn btn-outline-secondary btn-sm">⬇ Descargar plantilla</a>
+                    <p class="form-text mb-0 mt-2">
+                    Si editas la plantilla en Excel, guárdala con el formato <strong>CSV UTF-8 (delimitado por comas)</strong> para conservar los acentos.
+                </p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        <strong>No se ha importado ningún producto.</strong> Corrige estos errores y vuelve a intentarlo:
+                        <ul class="mb-0 mt-2">
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">{{ form.file.label }}</label>
+                        {{ form.file }}
+                        <div class="form-text">{{ form.file.help_text }}</div>
+                        {% for error in form.file.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-dark">Importar</button>
+                        <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
