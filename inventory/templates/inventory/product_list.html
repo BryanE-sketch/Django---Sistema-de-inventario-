@@ -30,7 +30,14 @@
                     <td>{{ product.category }}</td>
                     <td>{{ product.supplier }}</td>
                     <td class="text-end">{{ product.price }} €</td>
-                    <td class="text-end">{{ product.stock }}</td>
+                    <td class="text-end text-nowrap">
+                        {% if product.is_low_stock %}
+                        <span class="badge text-bg-danger me-1">Stock bajo</span>
+                        <span class="text-danger fw-semibold">{{ product.stock }}</span>
+                        {% else %}
+                        {{ product.stock }}
+                        {% endif %}
+                    </td>
                     <td class="text-end">
                         <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
                     </td>

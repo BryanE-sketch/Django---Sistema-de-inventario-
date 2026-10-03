@@ -35,6 +35,11 @@ class Supplier(models.Model):
         return self.name
 
 
+class ProductQuerySet(models.QuerySet):
+
+    def low_stock(self):
+        return self.filter(stock__lte=models.F('min_stock'))
+
 class Product(models.Model):
     name = models.CharField('nombre', max_length=150)
     sku = models.CharField(
@@ -66,6 +71,7 @@ class Product(models.Model):
     min_stock = models.PositiveIntegerField('stock mínimo', default=5)
     created_at = models.DateTimeField('creado', auto_now_add=True)
     updated_at = models.DateTimeField('actualizado', auto_now=True)
+    objects = ProductQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'producto'

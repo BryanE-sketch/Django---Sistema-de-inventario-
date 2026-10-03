@@ -8,20 +8,35 @@
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
             <a class="navbar-brand" href="{% url 'inventory:product_list' %}">📦 Inventario</a>
             {% if user.is_authenticated %}
-            <div class="d-flex align-items-center gap-3">
-                <a class="nav-link text-light" href="{% url 'inventory:product_list' %}">Productos</a>
-                <a class="nav-link text-light" href="{% url 'inventory:category_list' %}">Categorías</a>
-                <a class="nav-link text-light" href="{% url 'inventory:supplier_list' %}">Proveedores</a>
-                <a class="nav-link text-light" href="{% url 'inventory:movement_list' %}">Movimientos</a>
-                   <span class="text-secondary small">{{ user.username }}</span>
-                   <form method="post" action="{% url 'logout' %}" class="m-0">
-                       {% csrf_token %}
-                   <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
-                </form>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Abrir menú">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'inventory:product_list' %}">Productos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'inventory:category_list' %}">Categorías</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'inventory:supplier_list' %}">Proveedores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'inventory:movement_list' %}">Movimientos</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'inventory:low_stock' %}">
+                            Alertas
+                            {% if low_stock_count %}
+                            <span class="badge rounded-pill text-bg-danger">{{ low_stock_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-secondary small">{{ user.username }}</span>
+                    <form method="post" action="{% url 'logout' %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+                    </form>
+                </div>
             </div>
             {% endif %}
         </div>

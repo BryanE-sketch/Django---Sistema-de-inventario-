@@ -16,6 +16,14 @@
     </div>
 </div>
 
+{% if product.is_low_stock %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <span>⚠️ Stock en o por debajo del mínimo: quedan <strong>{{ product.stock }}</strong> unidades (mínimo {{ product.min_stock }}).</span>
+    <a href="{% url 'inventory:movement_create' %}?product={{ product.pk }}&type=IN" class="btn btn-sm btn-success">Reponer</a>
+</div>
+{% endif %}
+
+
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="card shadow-sm h-100">

@@ -26,4 +26,8 @@ urlpatterns = [
     # Movimientos de stock
     path('movimientos/', views.StockMovementListView.as_view(), name='movement_list'),
     path('movimientos/nuevo/', views.StockMovementCreateView.as_view(), name='movement_create'),
+    
+    
+    # Alertas
+    path('alertas/', views.LowStockListView.as_view(), name='low_stock'),
 ]

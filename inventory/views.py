@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, ProtectedError
+from django.db.models import Count, F, ProtectedError
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
@@ -189,7 +189,15 @@ class StockMovementCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateVie
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        product = self.object.product
+        if product.is_low_stock:
+            messages.warning(
+                self.request,
+                f'Atención: {product.name} está en o por debajo del stock mínimo '
+                f'({product.stock} de {product.min_stock} unidades).',
+            )
+        return response
 
     def get_success_url(self):
         return self.object.product.get_absolute_url()
@@ -199,4 +207,17 @@ class StockMovementCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateVie
         return (
             f'{movement.get_movement_type_display()} de {movement.quantity} unidades registrada. '
             f'Stock actual de {movement.product.name}: {movement.product.stock}.'
+        )
+
+
+class LowStockListView(LoginRequiredMixin, ListView):
+    template_name = 'inventory/low_stock_list.html'
+    context_object_name = 'products'
+
+    def get_queryset(self):
+        return (
+            Product.objects.low_stock()
+            .select_related('category', 'supplier')
+            .annotate(shortage=F('min_stock') - F('stock'))
+            .order_by('-shortage', 'name')
         )
