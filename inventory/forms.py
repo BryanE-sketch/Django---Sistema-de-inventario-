@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Category, Product, Supplier
+from .models import Category, Product, StockMovement, Supplier
 
 
 class BootstrapFormMixin:
@@ -39,3 +39,13 @@ class SupplierForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Supplier
         fields = ['name', 'contact_name', 'email', 'phone', 'address']
+        
+
+class StockMovementForm(BootstrapFormMixin, forms.ModelForm):
+
+    class Meta:
+        model = StockMovement
+        fields = ['product', 'movement_type', 'quantity', 'note']
+        widgets = {
+            'quantity': forms.NumberInput(attrs={'min': 1}),
+        }

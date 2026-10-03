@@ -22,4 +22,8 @@ urlpatterns = [
     path('proveedores/nuevo/', views.SupplierCreateView.as_view(), name='supplier_create'),
     path('proveedores/<int:pk>/editar/', views.SupplierUpdateView.as_view(), name='supplier_update'),
     path('proveedores/<int:pk>/eliminar/', views.SupplierDeleteView.as_view(), name='supplier_delete'),
+    
+    # Movimientos de stock
+    path('movimientos/', views.StockMovementListView.as_view(), name='movement_list'),
+    path('movimientos/nuevo/', views.StockMovementCreateView.as_view(), name='movement_create'),
 ]

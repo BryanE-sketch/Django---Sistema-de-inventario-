@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.urls import reverse
 
 
@@ -121,3 +122,30 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f'{self.get_movement_type_display()} de {self.quantity} - {self.product.name}'
+    
+    def clean(self):
+        if self.movement_type == self.MovementType.OUT and self.product_id and self.quantity:
+            if self.quantity > self.product.stock:
+                raise ValidationError({
+                    'quantity': f'Stock insuficiente. Disponible: {self.product.stock} unidades.'
+                })
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValueError('Los movimientos de stock no se pueden modificar.')
+
+        with transaction.atomic():
+            product = Product.objects.select_for_update().get(pk=self.product_id)
+
+            if self.movement_type == self.MovementType.OUT:
+                if self.quantity > product.stock:
+                    raise ValidationError(
+                        f'Stock insuficiente. Disponible: {product.stock} unidades.'
+                    )
+                product.stock -= self.quantity
+            else:
+                product.stock += self.quantity
+
+            product.save(update_fields=['stock', 'updated_at'])
+            super().save(*args, **kwargs)
+            self.product = product

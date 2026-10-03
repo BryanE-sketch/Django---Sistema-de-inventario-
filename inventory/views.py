@@ -3,12 +3,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, ProtectedError
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from .forms import CategoryForm, ProductForm, SupplierForm
-from .models import Category, Product, Supplier
-
+from .forms import CategoryForm, ProductForm, StockMovementForm, SupplierForm
+from .models import Category, Product, StockMovement, Supplier
 
 class ProtectedDeleteMixin:
     protected_message = 'No se puede eliminar porque tiene productos asociados.'
@@ -149,3 +148,55 @@ class SupplierDeleteView(LoginRequiredMixin, ProtectedDeleteMixin, DeleteView):
     extra_context = {
         'cancel_url': reverse_lazy('inventory:supplier_list'),
     }
+
+
+
+
+class StockMovementListView(LoginRequiredMixin, ListView):
+    model = StockMovement
+    template_name = 'inventory/movement_list.html'
+    context_object_name = 'movements'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return StockMovement.objects.select_related('product', 'created_by')
+
+
+class StockMovementCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = StockMovement
+    form_class = StockMovementForm
+    template_name = 'inventory/form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        product_id = self.request.GET.get('product')
+        movement_type = self.request.GET.get('type')
+        if product_id and product_id.isdigit():
+            initial['product'] = product_id
+        if movement_type in StockMovement.MovementType.values:
+            initial['movement_type'] = movement_type
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Registrar movimiento de stock'
+        product_id = self.request.GET.get('product')
+        if product_id and product_id.isdigit():
+            context['cancel_url'] = reverse('inventory:product_detail', args=[product_id])
+        else:
+            context['cancel_url'] = reverse('inventory:movement_list')
+        return context
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.object.product.get_absolute_url()
+
+    def get_success_message(self, cleaned_data):
+        movement = self.object
+        return (
+            f'{movement.get_movement_type_display()} de {movement.quantity} unidades registrada. '
+            f'Stock actual de {movement.product.name}: {movement.product.stock}.'
+        )
