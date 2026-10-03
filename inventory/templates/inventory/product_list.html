@@ -3,11 +3,14 @@
 {% block title %}Productos{% endblock %}
 
 {% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+    <h1 class="h3 mb-0">Productos</h1>
     <div class="d-flex gap-2">
         <a href="{% url 'inventory:product_import' %}" class="btn btn-outline-dark">Importar CSV</a>
         <a href="{% url 'inventory:product_create' %}" class="btn btn-dark">+ Nuevo producto</a>
     </div>
 </div>
+
 <form method="get" class="card shadow-sm mb-3">
     <div class="card-body">
         <div class="row g-3 align-items-end">
@@ -40,7 +43,6 @@
     </div>
 </form>
 
-
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -62,8 +64,8 @@
                     <td class="text-muted text-nowrap">{{ product.sku }}</td>
                     <td>{{ product.category }}</td>
                     <td>{{ product.supplier }}</td>
-                    <td class="text-end">{{ product.price }} €</td>
                     <td class="text-end text-nowrap">{{ product.price }} €</td>
+                    <td class="text-end text-nowrap">
                         {% if product.is_low_stock %}
                         <span class="badge text-bg-danger me-1">Stock bajo</span>
                         <span class="text-danger fw-semibold">{{ product.stock }}</span>
